@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#000a1a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="HoloPlace AR">
+  <meta name="description" content="Augmented Reality 3D shape placement tool">
+  <link rel="manifest" href="data:application/json;charset=utf-8,{%20%20%22name%22:%20%22HoloPlace%20AR%22,%20%20%22short_name%22:%20%22HoloPlace%22,%20%20%22description%22:%20%22Augmented%20Reality%203D%20holographic%20shape%20placement%20tool%22,%20%20%22start_url%22:%20%22./index.html%22,%20%20%22display%22:%20%22fullscreen%22,%20%20%22orientation%22:%20%22portrait%22,%20%20%22background_color%22:%20%22#000a1a%22,%20%20%22theme_color%22:%20%22#000a1a%22,%20%20%22categories%22:%20[%22utilities%22,%20%22productivity%22],%20%20%22icons%22:%20[%20%20%20%20{%20%20%20%20%20%20%22src%22:%20%22icons/icon-192.png%22,%20%20%20%20%20%20%22sizes%22:%20%22192x192%22,%20%20%20%20%20%20%22type%22:%20%22image/png%22,%20%20%20%20%20%20%22purpose%22:%20%22any%20maskable%22%20%20%20%20},%20%20%20%20{%20%20%20%20%20%20%22src%22:%20%22icons/icon-512.png%22,%20%20%20%20%20%20%22sizes%22:%20%22512x512%22,%20%20%20%20%20%20%22type%22:%20%22image/png%22,%20%20%20%20%20%20%22purpose%22:%20%22any%20maskable%22%20%20%20%20}%20%20],%20%20%22screenshots%22:%20[],%20%20%22prefer_related_applications%22:%20false}">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>HoloPlace AR</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+    :root {
+      --holo-blue: #00d4ff;
+      --holo-blue-dim: #0088aa;
+      --holo-glow: rgba(0, 212, 255, 0.3);
+      --holo-bg: rgba(0, 10, 30, 0.85);
+      --holo-border: rgba(0, 212, 255, 0.4);
+      --warn: #ff6b35;
+      --success: #00ff88;
+      --grid: rgba(0, 212, 255, 0.15);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: 'Share Tech Mono', monospace;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+    }
+
+    canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* ── SPLASH ── */
+    #splash {
+      position: fixed; inset: 0; z-index: 100;
+      background: #000a1a;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 24px;
+      transition: opacity 0.6s ease;
+    }
+    #splash.hidden { opacity: 0; pointer-events: none; }
+
+    .splash-logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(28px, 8vw, 48px);
+      font-weight: 900;
+      color: var(--holo-blue);
+      text-shadow: 0 0 20px var(--holo-blue), 0 0 40px rgba(0,212,255,0.5);
+      letter-spacing: 4px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .splash-sub {
+      color: rgba(0,212,255,0.6);
+      font-size: 12px;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+    }
+
+    .splash-grid {
+      width: 200px; height: 200px;
+      position: relative;
+      margin: 10px 0;
+    }
+    .splash-grid svg { width: 100%; height: 100%; animation: spin 8s linear infinite; }
+
+    #start-btn {
+      background: transparent;
+      border: 1px solid var(--holo-blue);
+      color: var(--holo-blue);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      letter-spacing: 4px;
+      padding: 14px 40px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+    #start-btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: var(--holo-blue);
+      transform: translateX(-100%);
+      transition: transform 0.3s;
+      z-index: -1;
+    }
+    #start-btn:hover::before, #start-btn:active::before { transform: translateX(0); }
+    #start-btn:hover, #start-btn:active { color: #000; }
+
+    .splash-note {
+      font-size: 10px;
+      color: rgba(0,212,255,0.4);
+      text-align: center;
+      padding: 0 30px;
+      line-height: 1.8;
+    }
+
+    /* ── HUD OVERLAY ── */
+    #hud {
+      position: fixed; inset: 0; z-index: 10;
+      pointer-events: none;
+      display: none;
+    }
+    #hud.active { display: block; }
+
+    /* Corner decorations */
+    .corner {
+      position: absolute;
+      width: 40px; height: 40px;
+      border-color: var(--holo-blue);
+      border-style: solid;
+      opacity: 0.6;
+    }
+    .corner-tl { top: 16px; left: 16px; border-width: 2px 0 0 2px; }
+    .corner-tr { top: 16px; right: 16px; border-width: 2px 2px 0 0; }
+    .corner-bl { bottom: 100px; left: 16px; border-width: 0 0 2px 2px; }
+    .corner-br { bottom: 100px; right: 16px; border-width: 0 2px 2px 0; }
+
+    /* Crosshair */
+    #crosshair {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px; height: 40px;
+    }
+    #crosshair svg { width: 100%; height: 100%; }
+
+    /* Status bar */
+    #status-bar {
+      position: absolute;
+      top: 20px; left: 50%;
+      transform: translateX(-50%);
+      background: var(--holo-bg);
+      border: 1px solid var(--holo-border);
+      padding: 6px 16px;
+      font-size: 10px;
+      color: var(--holo-blue);
+      letter-spacing: 2px;
+      white-space: nowrap;
+      backdrop-filter: blur(8px);
+      pointer-events: none;
+    }
+
+    /* Surface detection indicator */
+    #surface-indicator {
+      position: absolute;
+      bottom: 160px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      color: var(--holo-blue);
+      letter-spacing: 2px;
+      opacity: 0;
+      transition: opacity 0.4s;
+      text-align: center;
+      pointer-events: none;
+    }
+    #surface-indicator.visible { opacity: 0.8; }
+
+    /* Dimension display */
+    #dimensions {
+      position: absolute;
+      top: 60px; right: 16px;
+      background: var(--holo-bg);
+      border: 1px solid var(--holo-border);
+      padding: 10px 14px;
+      font-size: 10px;
+      color: var(--holo-blue);
+      line-height: 2;
+      letter-spacing: 1px;
+      backdrop-filter: blur(8px);
+      display: none;
+      pointer-events: none;
+    }
+    #dimensions.visible { display: block; }
+    #dimensions .dim-label { color: rgba(0,212,255,0.5); font-size: 9px; }
+    #dimensions .dim-value { color: var(--holo-blue); }
+
+    /* Coordinates display */
+    #coords {
+      position: absolute;
+      top: 60px; left: 16px;
+      background: var(--holo-bg);
+      border: 1px solid var(--holo-border);
+      padding: 10px 14px;
+      font-size: 10px;
+      color: var(--holo-blue);
+      line-height: 2;
+      letter-spacing: 1px;
+      backdrop-filter: blur(8px);
+      display: none;
+      pointer-events: none;
+    }
+    #coords.visible { display: block; }
+
+    /* ── TOOLBAR ── */
+    #toolbar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 20;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    #toolbar.active { display: flex; }
+
+    #shape-selector {
+      display: flex;
+      gap: 0;
+      background: var(--holo-bg);
+      border: 1px solid var(--holo-border);
+      border-bottom: none;
+      backdrop-filter: blur(12px);
+      pointer-events: all;
+    }
+
+    .shape-btn {
+      background: transparent;
+      border: none;
+      border-right: 1px solid var(--holo-border);
+      color: rgba(0,212,255,0.5);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      padding: 10px 18px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+      touch-action: manipulation;
+      min-width: 70px;
+    }
+    .shape-btn:last-child { border-right: none; }
+    .shape-btn svg { width: 24px; height: 24px; }
+    .shape-btn.active,
+    .shape-btn:active {
+      color: var(--holo-blue);
+      background: rgba(0,212,255,0.1);
+      text-shadow: 0 0 8px var(--holo-blue);
+    }
+    .shape-btn.active svg path,
+    .shape-btn.active svg circle,
+    .shape-btn.active svg ellipse,
+    .shape-btn.active svg rect {
+      stroke: var(--holo-blue);
+      filter: drop-shadow(0 0 3px var(--holo-blue));
+    }
+
+    #action-bar {
+      display: flex;
+      background: rgba(0,10,26,0.95);
+      border: 1px solid var(--holo-border);
+      border-bottom: none;
+      border-top: none;
+      width: 100%;
+      backdrop-filter: blur(12px);
+      pointer-events: all;
+    }
+
+    .action-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-right: 1px solid rgba(0,212,255,0.15);
+      color: rgba(0,212,255,0.5);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 1px;
+      padding: 8px 4px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.2s;
+      touch-action: manipulation;
+    }
+    .action-btn:last-child { border-right: none; }
+    .action-btn svg { width: 18px; height: 18px; }
+    .action-btn.active,
+    .action-btn:active {
+      color: var(--holo-blue);
+      background: rgba(0,212,255,0.08);
+    }
+    .action-btn.danger { color: rgba(255,80,60,0.6); }
+    .action-btn.danger:active { color: #ff4040; background: rgba(255,64,64,0.1); }
+
+    /* Mode label */
+    #mode-label {
+      position: fixed;
+      bottom: 130px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      letter-spacing: 4px;
+      color: var(--holo-blue);
+      opacity: 0.7;
+      pointer-events: none;
+      text-transform: uppercase;
+      display: none;
+      z-index: 15;
+    }
+    #mode-label.visible { display: block; }
+
+    /* Instruction toast */
+    #toast {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--holo-bg);
+      border: 1px solid var(--holo-border);
+      color: var(--holo-blue);
+      font-size: 11px;
+      letter-spacing: 2px;
+      padding: 12px 24px;
+      text-align: center;
+      z-index: 30;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+      backdrop-filter: blur(12px);
+      max-width: 80vw;
+    }
+    #toast.show { opacity: 1; }
+
+    /* Non-AR fallback camera */
+    #video-bg {
+      position: fixed; inset: 0; z-index: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    /* Scan lines effect */
+    #scanlines {
+      position: fixed; inset: 0; z-index: 2;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.03) 2px,
+        rgba(0,0,0,0.03) 4px
+      );
+      display: none;
+    }
+    #scanlines.active { display: block; }
+
+    /* Vignette */
+    #vignette {
+      position: fixed; inset: 0; z-index: 3;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center,
+        transparent 60%,
+        rgba(0,5,15,0.5) 100%
+      );
+      display: none;
+    }
+    #vignette.active { display: block; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .blink { animation: blink 1s step-end infinite; }
+  </style>
+</head>
+<body>
+
+<!-- Video background for non-WebXR fallback -->
+<video id="video-bg" autoplay playsinline muted></video>
+
+<!-- Main canvas -->
+<div id="canvas-container">
+  <canvas id="ar-canvas"></canvas>
+</div>
+
+<!-- Scan lines & vignette -->
+<div id="scanlines"></div>
+<div id="vignette"></div>
+
+<!-- SPLASH SCREEN -->
+<div id="splash">
+  <div class="splash-logo">HOLOPLACE</div>
+  <div class="splash-sub">AR · Prototype · v1.0</div>
+
+  <div class="splash-grid">
+    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Outer ring -->
+      <circle cx="100" cy="100" r="90" stroke="#00d4ff" stroke-width="0.5" stroke-dasharray="4 4" opacity="0.4"/>
+      <!-- Inner ring -->
+      <circle cx="100" cy="100" r="60" stroke="#00d4ff" stroke-width="0.5" opacity="0.5"/>
+      <!-- Cube wireframe -->
+      <rect x="70" y="70" width="60" height="60" stroke="#00d4ff" stroke-width="1.5" fill="none"/>
+      <rect x="80" y="60" width="60" height="60" stroke="#00d4ff" stroke-width="0.8" fill="none" opacity="0.6"/>
+      <line x1="70" y1="70" x2="80" y2="60" stroke="#00d4ff" stroke-width="0.8" opacity="0.6"/>
+      <line x1="130" y1="70" x2="140" y2="60" stroke="#00d4ff" stroke-width="0.8" opacity="0.6"/>
+      <line x1="130" y1="130" x2="140" y2="120" stroke="#00d4ff" stroke-width="0.8" opacity="0.6"/>
+      <line x1="70" y1="130" x2="80" y2="120" stroke="#00d4ff" stroke-width="0.8" opacity="0.6"/>
+      <!-- Cross lines -->
+      <line x1="10" y1="100" x2="190" y2="100" stroke="#00d4ff" stroke-width="0.3" opacity="0.2"/>
+      <line x1="100" y1="10" x2="100" y2="190" stroke="#00d4ff" stroke-width="0.3" opacity="0.2"/>
+    </svg>
+  </div>
+
+  <button id="start-btn" onclick="startAR()">INITIALIZE AR</button>
+  <div class="splash-note">
+    Point your camera at a flat surface.<br>
+    Tap to place holographic objects.<br>
+    Requires camera permission.
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="corner corner-tl"></div>
+  <div class="corner corner-tr"></div>
+  <div class="corner corner-bl"></div>
+  <div class="corner corner-br"></div>
+
+  <div id="status-bar">
+    <span id="status-text">SCANNING SURFACE<span class="blink">_</span></span>
+  </div>
+
+  <div id="crosshair">
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="20" cy="20" r="8" stroke="#00d4ff" stroke-width="1" opacity="0.8"/>
+      <line x1="20" y1="2" x2="20" y2="12" stroke="#00d4ff" stroke-width="1" opacity="0.8"/>
+      <line x1="20" y1="28" x2="20" y2="38" stroke="#00d4ff" stroke-width="1" opacity="0.8"/>
+      <line x1="2" y1="20" x2="12" y2="20" stroke="#00d4ff" stroke-width="1" opacity="0.8"/>
+      <line x1="28" y1="20" x2="38" y2="20" stroke="#00d4ff" stroke-width="1" opacity="0.8"/>
+    </svg>
+  </div>
+
+  <div id="surface-indicator">▼ SURFACE DETECTED ▼</div>
+
+  <div id="dimensions">
+    <div class="dim-label">DIMENSIONS</div>
+    <div id="dim-w">W: <span class="dim-value">—</span></div>
+    <div id="dim-h">H: <span class="dim-value">—</span></div>
+    <div id="dim-d">D: <span class="dim-value">—</span></div>
+    <div class="dim-label" style="margin-top:6px">SCALE</div>
+    <div id="dim-s">× <span class="dim-value" id="scale-val">1.0</span></div>
+  </div>
+
+  <div id="coords">
+    <div class="dim-label">POSITION</div>
+    <div id="coord-x">X: <span class="dim-value" id="cx">0.00</span>m</div>
+    <div id="coord-y">Y: <span class="dim-value" id="cy">0.00</span>m</div>
+    <div id="coord-z">Z: <span class="dim-value" id="cz">0.00</span>m</div>
+  </div>
+</div>
+
+<!-- Mode label -->
+<div id="mode-label">PLACE MODE</div>
+
+<!-- Toast notification -->
+<div id="toast"></div>
+
+<!-- Toolbar -->
+<div id="toolbar">
+  <div id="action-bar">
+    <button class="action-btn active" id="btn-place" onclick="setMode('place')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+      </svg>
+      PLACE
+    </button>
+    <button class="action-btn" id="btn-move" onclick="setMode('move')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M12 12v0"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+        <line x1="12" y1="2" x2="12" y2="22"/>
+      </svg>
+      MOVE
+    </button>
+    <button class="action-btn" id="btn-rotate" onclick="setMode('rotate')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
+      </svg>
+      ROTATE
+    </button>
+    <button class="action-btn" id="btn-scale" onclick="setMode('scale')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+      </svg>
+      SCALE
+    </button>
+    <button class="action-btn danger" id="btn-delete" onclick="deleteObject()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+        <path d="M10 11v6M14 11v6"/>
+        <path d="M9 6V4h6v2"/>
+      </svg>
+      DELETE
+    </button>
+  </div>
+
+  <div id="shape-selector">
+    <button class="shape-btn active" id="shape-cube" onclick="selectShape('cube')">
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="14" width="16" height="16" stroke="#00d4ff" stroke-width="1.5"/>
+        <rect x="14" y="6" width="16" height="16" stroke="#00d4ff" stroke-width="1" opacity="0.6"/>
+        <line x1="8" y1="14" x2="14" y2="6" stroke="#00d4ff" stroke-width="1" opacity="0.6"/>
+        <line x1="24" y1="14" x2="30" y2="6" stroke="#00d4ff" stroke-width="1" opacity="0.6"/>
+        <line x1="24" y1="30" x2="30" y2="22" stroke="#00d4ff" stroke-width="1" opacity="0.6"/>
+        <line x1="8" y1="30" x2="14" y2="22" stroke="#00d4ff" stroke-width="1" opacity="0.6"/>
+      </svg>
+      CUBE
+    </button>
+    <button class="shape-btn" id="shape-sphere" onclick="selectShape('sphere')">
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="12" stroke="#00d4ff" stroke-width="1.5"/>
+        <ellipse cx="16" cy="16" rx="12" ry="5" stroke="#00d4ff" stroke-width="0.8" opacity="0.6"/>
+        <line x1="16" y1="4" x2="16" y2="28" stroke="#00d4ff" stroke-width="0.8" opacity="0.6"/>
+        <ellipse cx="16" cy="16" rx="5" ry="12" stroke="#00d4ff" stroke-width="0.8" opacity="0.4"/>
+      </svg>
+      SPHERE
+    </button>
+    <button class="shape-btn" id="shape-cylinder" onclick="selectShape('cylinder')">
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="16" cy="9" rx="10" ry="4" stroke="#00d4ff" stroke-width="1.5"/>
+        <ellipse cx="16" cy="23" rx="10" ry="4" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="6" y1="9" x2="6" y2="23" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="26" y1="9" x2="26" y2="23" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="16" y1="5" x2="16" y2="19" stroke="#00d4ff" stroke-width="0.6" opacity="0.4"/>
+      </svg>
+      CYLINDER
+    </button>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/**
+ * HoloPlace AR — Main Application
+ * Three.js + WebXR AR with camera fallback
+ */
+
+'use strict';
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+const State = {
+  mode: 'place',       // place | move | rotate | scale
+  shape: 'cube',
+  hasObject: false,
+  surfaceDetected: false,
+  xrSession: null,
+  xrMode: false,       // true = WebXR, false = camera fallback
+  scale: 1.0,
+  rotationY: 0,
+  objectPosition: new THREE.Vector3(),
+  // touch
+  lastTouchX: 0,
+  lastTouchY: 0,
+  lastPinchDist: 0,
+  isDragging: false,
+};
+
+// ── SCENE ──────────────────────────────────────────────────────────────────
+let renderer, scene, camera, clock;
+let placedMesh = null;
+let reticleMesh = null;
+let groundGrid = null;
+let hitTestSource = null;
+let hitTestSourceRequested = false;
+let localSpace = null;
+let viewerSpace = null;
+let animFrame = null;
+
+// ── DOM ────────────────────────────────────────────────────────────────────
+const canvas       = document.getElementById('ar-canvas');
+const hud          = document.getElementById('hud');
+const toolbar      = document.getElementById('toolbar');
+const surfaceInd   = document.getElementById('surface-indicator');
+const modeLabel    = document.getElementById('mode-label');
+const statusText   = document.getElementById('status-text');
+const toastEl      = document.getElementById('toast');
+const dimPanel     = document.getElementById('dimensions');
+const coordPanel   = document.getElementById('coords');
+const scaleVal     = document.getElementById('scale-val');
+const videoBg      = document.getElementById('video-bg');
+const scanlines    = document.getElementById('scanlines');
+const vignette     = document.getElementById('vignette');
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+async function startAR() {
+  const splash = document.getElementById('splash');
+  splash.classList.add('hidden');
+  setTimeout(() => splash.style.display = 'none', 700);
+
+  hud.classList.add('active');
+  toolbar.classList.add('active');
+  scanlines.classList.add('active');
+  vignette.classList.add('active');
+
+  initThree();
+  showToast('CAMERA PERMISSION REQUIRED', 1800);
+
+  const hasWebXR = 'xr' in navigator;
+  let xrSupported = false;
+
+  if (hasWebXR) {
+    try {
+      xrSupported = await navigator.xr.isSessionSupported('immersive-ar');
+    } catch(e) { xrSupported = false; }
+  }
+
+  if (xrSupported) {
+    await startWebXR();
+  } else {
+    await startCameraFallback();
+  }
+}
+
+// ── THREE.JS INIT ──────────────────────────────────────────────────────────
+function initThree() {
+  clock = new THREE.Clock();
+
+  renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: true,
+    alpha: true,
+    premultipliedAlpha: false,
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.xr.enabled = true;
+  renderer.setClearColor(0x000000, 0);
+
+  scene = new THREE.Scene();
+
+  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
+  camera.position.set(0, 1.6, 0);
+
+  // Lighting (subtle, holographic feel)
+  const ambient = new THREE.AmbientLight(0x002244, 1.5);
+  scene.add(ambient);
+  const dir = new THREE.DirectionalLight(0x00d4ff, 0.8);
+  dir.position.set(1, 3, 2);
+  scene.add(dir);
+
+  buildReticle();
+  buildGroundGrid();
+
+  window.addEventListener('resize', onResize);
+}
+
+// ── RETICLE ────────────────────────────────────────────────────────────────
+function buildReticle() {
+  const geo = new THREE.RingGeometry(0.06, 0.08, 32);
+  geo.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0x00d4ff,
+    transparent: true,
+    opacity: 0.8,
+    side: THREE.DoubleSide,
+  });
+  reticleMesh = new THREE.Mesh(geo, mat);
+  reticleMesh.visible = false;
+
+  // Inner dot
+  const dotGeo = new THREE.CircleGeometry(0.02, 16);
+  dotGeo.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+  const dotMat = new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
+  const dot = new THREE.Mesh(dotGeo, dotMat);
+  reticleMesh.add(dot);
+
+  scene.add(reticleMesh);
+}
+
+// ── GROUND GRID ────────────────────────────────────────────────────────────
+function buildGroundGrid() {
+  const size = 1.2, divisions = 12;
+  const helper = new THREE.GridHelper(size, divisions, 0x00d4ff, 0x003355);
+  helper.material.transparent = true;
+  helper.material.opacity = 0.25;
+  helper.visible = false;
+  groundGrid = helper;
+  scene.add(groundGrid);
+}
+
+// ── HOLOGRAPHIC MATERIAL ───────────────────────────────────────────────────
+function holoMaterial() {
+  return new THREE.MeshBasicMaterial({
+    color: 0x00d4ff,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.75,
+  });
+}
+
+function holoEdgeMaterial() {
+  return new THREE.LineBasicMaterial({
+    color: 0x00d4ff,
+    transparent: true,
+    opacity: 0.9,
+  });
+}
+
+// ── BUILD SHAPES ───────────────────────────────────────────────────────────
+function buildShape(type) {
+  const group = new THREE.Group();
+  let geo, baseSize;
+
+  switch (type) {
+    case 'cube':
+      baseSize = { w: 0.3, h: 0.3, d: 0.3 };
+      geo = new THREE.BoxGeometry(0.3, 0.3, 0.3, 3, 3, 3);
+      break;
+    case 'sphere':
+      baseSize = { w: 0.3, h: 0.3, d: 0.3 };
+      geo = new THREE.SphereGeometry(0.15, 12, 8);
+      break;
+    case 'cylinder':
+      baseSize = { w: 0.2, h: 0.4, d: 0.2 };
+      geo = new THREE.CylinderGeometry(0.1, 0.1, 0.4, 16, 4);
+      break;
+  }
+
+  // Wireframe fill
+  const mesh = new THREE.Mesh(geo, holoMaterial());
+  group.add(mesh);
+
+  // Bold edges
+  const edges = new THREE.EdgesGeometry(geo);
+  const lineMat = holoEdgeMaterial();
+  const lines = new THREE.LineSegments(edges, lineMat);
+  group.add(lines);
+
+  group.userData.type = type;
+  group.userData.baseSize = baseSize;
+  group.userData.scale = 1.0;
+
+  return group;
+}
+
+// ── PLACE OBJECT ───────────────────────────────────────────────────────────
+function placeObject(position) {
+  if (placedMesh) {
+    scene.remove(placedMesh);
+    placedMesh.traverse(o => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) o.material.dispose();
+    });
+  }
+
+  placedMesh = buildShape(State.shape);
+  placedMesh.position.copy(position);
+
+  // Lift shape so base sits on surface
+  const bs = placedMesh.userData.baseSize;
+  const halfH = (State.shape === 'sphere') ? bs.h / 2 : bs.h / 2;
+  placedMesh.position.y += halfH * State.scale;
+
+  placedMesh.scale.setScalar(State.scale);
+  placedMesh.rotation.y = State.rotationY;
+
+  scene.add(placedMesh);
+  State.hasObject = true;
+  State.objectPosition.copy(position);
+
+  // Ground grid at same position
+  groundGrid.position.set(position.x, position.y, position.z);
+  groundGrid.visible = true;
+
+  updateHUD();
+  showToast('OBJECT PLACED', 1000);
+}
+
+// ── DELETE ─────────────────────────────────────────────────────────────────
+function deleteObject() {
+  if (!placedMesh) { showToast('NO OBJECT TO DELETE', 800); return; }
+  scene.remove(placedMesh);
+  placedMesh.traverse(o => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) o.material.dispose();
+  });
+  placedMesh = null;
+  State.hasObject = false;
+  groundGrid.visible = false;
+  dimPanel.classList.remove('visible');
+  coordPanel.classList.remove('visible');
+  State.scale = 1.0;
+  State.rotationY = 0;
+  showToast('OBJECT DELETED', 800);
+  setMode('place');
+}
+
+// ── UPDATE HUD ─────────────────────────────────────────────────────────────
+function updateHUD() {
+  if (!placedMesh) return;
+  const bs = placedMesh.userData.baseSize;
+  const s = State.scale;
+  document.querySelector('#dim-w .dim-value').textContent = (bs.w * s).toFixed(2) + 'm';
+  document.querySelector('#dim-h .dim-value').textContent = (bs.h * s).toFixed(2) + 'm';
+  document.querySelector('#dim-d .dim-value').textContent = (bs.d * s).toFixed(2) + 'm';
+  scaleVal.textContent = s.toFixed(2);
+  dimPanel.classList.add('visible');
+
+  const p = placedMesh.position;
+  document.getElementById('cx').textContent = p.x.toFixed(2);
+  document.getElementById('cy').textContent = p.y.toFixed(2);
+  document.getElementById('cz').textContent = p.z.toFixed(2);
+  coordPanel.classList.add('visible');
+}
+
+// ── MODE ───────────────────────────────────────────────────────────────────
+function setMode(m) {
+  State.mode = m;
+  ['place','move','rotate','scale'].forEach(id => {
+    document.getElementById('btn-' + id).classList.toggle('active', id === m);
+  });
+  const labels = { place: 'PLACE MODE', move: 'MOVE MODE', rotate: 'ROTATE MODE', scale: 'PINCH TO SCALE' };
+  modeLabel.textContent = labels[m];
+  modeLabel.classList.add('visible');
+  setTimeout(() => modeLabel.classList.remove('visible'), 2000);
+  showToast(labels[m], 800);
+}
+
+// ── SHAPE SELECTION ────────────────────────────────────────────────────────
+function selectShape(type) {
+  State.shape = type;
+  ['cube','sphere','cylinder'].forEach(s => {
+    document.getElementById('shape-' + s).classList.toggle('active', s === type);
+  });
+  setMode('place');
+  showToast('SHAPE: ' + type.toUpperCase(), 700);
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg, duration = 1500) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), duration);
+}
+
+// ── RESIZE ────────────────────────────────────────────────────────────────
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// WebXR MODE
+// ══════════════════════════════════════════════════════════════════════════
+async function startWebXR() {
+  State.xrMode = true;
+  try {
+    const session = await navigator.xr.requestSession('immersive-ar', {
+      requiredFeatures: ['hit-test'],
+      optionalFeatures: ['dom-overlay', 'light-estimation'],
+      domOverlay: { root: document.body },
+    });
+    State.xrSession = session;
+    renderer.xr.setReferenceSpaceType('local');
+    await renderer.xr.setSession(session);
+    session.addEventListener('end', onXREnd);
+    renderer.setAnimationLoop(xrRenderLoop);
+    setupTouchHandlers();
+    statusText.innerHTML = 'SCANNING SURFACE<span class="blink">_</span>';
+  } catch(e) {
+    console.warn('WebXR failed:', e);
+    await startCameraFallback();
+  }
+}
+
+function onXREnd() {
+  State.xrSession = null;
+  State.xrMode = false;
+  hitTestSource = null;
+  hitTestSourceRequested = false;
+}
+
+async function xrRenderLoop(timestamp, frame) {
+  if (!frame) return;
+
+  // Hit test setup
+  if (!hitTestSourceRequested) {
+    hitTestSourceRequested = true;
+    const session = renderer.xr.getSession();
+    try {
+      const refSpace = await session.requestReferenceSpace('viewer');
+      viewerSpace = refSpace;
+      const src = await session.requestHitTestSource({ space: refSpace });
+      hitTestSource = src;
+      localSpace = await session.requestReferenceSpace('local');
+    } catch(e) {}
+  }
+
+  if (hitTestSource && frame) {
+    try {
+      const results = frame.getHitTestResults(hitTestSource);
+      if (results.length > 0) {
+        const pose = results[0].getPose(localSpace || renderer.xr.getReferenceSpace());
+        if (pose) {
+          State.surfaceDetected = true;
+          reticleMesh.visible = (State.mode === 'place');
+          reticleMesh.matrix.fromArray(pose.transform.matrix);
+          reticleMesh.matrix.decompose(reticleMesh.position, reticleMesh.quaternion, reticleMesh.scale);
+          surfaceInd.classList.add('visible');
+          statusText.innerHTML = 'SURFACE LOCKED · TAP TO PLACE';
+        }
+      } else {
+        State.surfaceDetected = false;
+        reticleMesh.visible = false;
+        surfaceInd.classList.remove('visible');
+        statusText.innerHTML = 'SCANNING SURFACE<span class="blink">_</span>';
+      }
+    } catch(e) {}
+  }
+
+  renderer.render(scene, camera);
+  if (placedMesh) animateMesh();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// CAMERA FALLBACK (non-WebXR browsers)
+// ══════════════════════════════════════════════════════════════════════════
+let fallbackStream = null;
+
+async function startCameraFallback() {
+  State.xrMode = false;
+  showToast('AR MODE: CAMERA FALLBACK', 2000);
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: 'environment',
+        width: { ideal: window.innerWidth },
+        height: { ideal: window.innerHeight },
+      },
+      audio: false,
+    });
+    fallbackStream = stream;
+    videoBg.srcObject = stream;
+    videoBg.style.display = 'block';
+    canvas.style.background = 'transparent';
+
+  } catch(e) {
+    showToast('CAMERA UNAVAILABLE', 2000);
+    canvas.style.background = 'linear-gradient(135deg, #000a1a 0%, #001122 100%)';
+  }
+
+  // Place camera so scene is visible
+  camera.position.set(0, 1.6, 2);
+  camera.lookAt(0, 0, 0);
+
+  // Build a "virtual floor" for raycasting
+  buildFallbackFloor();
+
+  State.surfaceDetected = true;
+  reticleMesh.visible = true;
+  surfaceInd.classList.add('visible');
+  statusText.innerHTML = 'TAP TO PLACE OBJECT';
+
+  setupTouchHandlers();
+  fallbackRenderLoop();
+}
+
+let floorPlane = null;
+function buildFallbackFloor() {
+  const geo = new THREE.PlaneGeometry(20, 20);
+  geo.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+  const mat = new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide });
+  floorPlane = new THREE.Mesh(geo, mat);
+  floorPlane.position.y = 0;
+  scene.add(floorPlane);
+
+  // Visible grid
+  const grid = new THREE.GridHelper(10, 20, 0x003355, 0x001122);
+  grid.material.transparent = true;
+  grid.material.opacity = 0.2;
+  scene.add(grid);
+}
+
+function fallbackRenderLoop() {
+  animFrame = requestAnimationFrame(fallbackRenderLoop);
+  renderer.render(scene, camera);
+  if (placedMesh) animateMesh();
+
+  // Float reticle in view center at floor level
+  if (State.mode === 'place' && !State.hasObject) {
+    reticleMesh.position.set(0, 0, -0.5);
+    reticleMesh.visible = true;
+  } else {
+    reticleMesh.visible = false;
+  }
+}
+
+// ── MESH ANIMATION ─────────────────────────────────────────────────────────
+function animateMesh() {
+  if (!placedMesh) return;
+  // Subtle pulse via opacity
+  const t = clock.getElapsedTime();
+  placedMesh.traverse(child => {
+    if (child.material && child.material.wireframe) {
+      child.material.opacity = 0.55 + 0.2 * Math.sin(t * 1.5);
+    } else if (child.material && child.isLineSegments) {
+      child.material.opacity = 0.7 + 0.25 * Math.sin(t * 1.5 + 0.5);
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// TOUCH / INTERACTION
+// ══════════════════════════════════════════════════════════════════════════
+function setupTouchHandlers() {
+  canvas.addEventListener('click', onTap);
+  canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+  canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+  canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+}
+
+const raycaster = new THREE.Raycaster();
+
+function getScreenNDC(clientX, clientY) {
+  return new THREE.Vector2(
+    (clientX / window.innerWidth) * 2 - 1,
+    -(clientY / window.innerHeight) * 2 + 1
+  );
+}
+
+// ── TAP ────────────────────────────────────────────────────────────────────
+function onTap(e) {
+  // In XR mode tap is handled differently; only handle for fallback
+  if (State.xrMode) return;
+  if (State.mode !== 'place') return;
+
+  const ndc = getScreenNDC(e.clientX, e.clientY);
+  raycaster.setFromCamera(ndc, camera);
+
+  // Intersect floor plane
+  const targets = floorPlane ? [floorPlane] : [];
+  const hits = raycaster.intersectObjects(targets);
+
+  if (hits.length > 0) {
+    placeObject(hits[0].point);
+  } else {
+    // Fallback: place at fixed distance
+    const pos = new THREE.Vector3(0, 0, -1).applyMatrix4(camera.matrixWorld);
+    pos.y = 0;
+    placeObject(pos);
+  }
+}
+
+// ── TOUCH START ────────────────────────────────────────────────────────────
+function onTouchStart(e) {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    State.lastTouchX = t.clientX;
+    State.lastTouchY = t.clientY;
+    State.isDragging = false;
+
+    // XR: place on tap
+    if (State.xrMode && State.mode === 'place' && State.surfaceDetected) {
+      placeObject(reticleMesh.position.clone());
+      return;
+    }
+  }
+
+  if (e.touches.length === 2) {
+    State.lastPinchDist = getPinchDist(e.touches);
+  }
+}
+
+// ── TOUCH MOVE ────────────────────────────────────────────────────────────
+function onTouchMove(e) {
+  e.preventDefault();
+  if (!placedMesh) return;
+
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    const dx = t.clientX - State.lastTouchX;
+    const dy = t.clientY - State.lastTouchY;
+    State.isDragging = true;
+
+    switch (State.mode) {
+      case 'move':
+        moveDrag(dx, dy);
+        break;
+      case 'rotate':
+        placedMesh.rotation.y += dx * 0.01;
+        State.rotationY = placedMesh.rotation.y;
+        break;
+      case 'scale':
+        // Single-finger scale: vertical drag
+        const factor = 1 - dy * 0.005;
+        State.scale = Math.max(0.1, Math.min(5, State.scale * factor));
+        applyScale();
+        break;
+    }
+
+    State.lastTouchX = t.clientX;
+    State.lastTouchY = t.clientY;
+    updateHUD();
+  }
+
+  // Pinch to scale
+  if (e.touches.length === 2) {
+    const dist = getPinchDist(e.touches);
+    const delta = dist / State.lastPinchDist;
+    State.lastPinchDist = dist;
+    State.scale = Math.max(0.1, Math.min(5, State.scale * delta));
+    applyScale();
+    updateHUD();
+  }
+}
+
+function onTouchEnd(e) {
+  e.preventDefault();
+  if (State.isDragging) { State.isDragging = false; return; }
+
+  // Tap in fallback place mode
+  if (!State.xrMode && State.mode === 'place' && e.changedTouches.length > 0) {
+    const t = e.changedTouches[0];
+    const ndc = getScreenNDC(t.clientX, t.clientY);
+    raycaster.setFromCamera(ndc, camera);
+    const targets = floorPlane ? [floorPlane] : [];
+    const hits = raycaster.intersectObjects(targets);
+    if (hits.length > 0) {
+      placeObject(hits[0].point);
+    } else {
+      const pos = new THREE.Vector3(0, 0, -1).applyMatrix4(camera.matrixWorld);
+      pos.y = 0;
+      placeObject(pos);
+    }
+  }
+}
+
+// ── MOVE DRAG ─────────────────────────────────────────────────────────────
+function moveDrag(dx, dy) {
+  if (!placedMesh) return;
+  const speed = 0.002;
+  const cam = camera.matrixWorld;
+  const right = new THREE.Vector3(cam.elements[0], 0, cam.elements[8]).normalize();
+  const forward = new THREE.Vector3(cam.elements[2], 0, cam.elements[10]).normalize().negate();
+  placedMesh.position.addScaledVector(right, dx * speed);
+  placedMesh.position.addScaledVector(forward, -dy * speed);
+  groundGrid.position.copy(placedMesh.position);
+  groundGrid.position.y = 0;
+}
+
+// ── SCALE APPLY ───────────────────────────────────────────────────────────
+function applyScale() {
+  if (!placedMesh) return;
+  placedMesh.scale.setScalar(State.scale);
+  // Re-lift
+  const bs = placedMesh.userData.baseSize;
+  const base = placedMesh.position.clone();
+  base.y = bs.h / 2 * State.scale;
+  placedMesh.position.y = base.y;
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+function getPinchDist(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// ── SERVICE WORKER ────────────────────────────────────────────────────────
+// SW registered via inline blob (see bundled script)
+
+// Expose globals for HTML onclick
+window.startAR = startAR;
+window.setMode = setMode;
+window.selectShape = selectShape;
+window.deleteObject = deleteObject;
+
+</script>
+
+<script>
+// Inline Service Worker Registration
+if ('serviceWorker' in navigator) {
+  const swCode = `/**
+ * HoloPlace AR — Service Worker
+ * Provides offline installation and caching
+ */
+
+const CACHE_NAME = 'holoplace-ar-v1.0.0';
+const CORE_ASSETS = [
+  './',
+  './index.html',
+  './app.js',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+];
+
+const CDN_ASSETS = [
+  'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
+  'https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap',
+];
+
+// ── INSTALL ──────────────────────────────────────────────────────────────
+self.addEventListener('install', event => {
+  console.log('[SW] Installing HoloPlace AR cache...');
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(async cache => {
+      // Cache core assets (must succeed)
+      await cache.addAll(CORE_ASSETS);
+      // Cache CDN assets (best effort)
+      for (const url of CDN_ASSETS) {
+        try {
+          const response = await fetch(url, { mode: 'cors' });
+          if (response.ok) await cache.put(url, response);
+        } catch (e) {
+          console.warn('[SW] Could not cache CDN asset:', url, e.message);
+        }
+      }
+      console.log('[SW] Cache complete');
+    })
+  );
+  self.skipWaiting();
+});
+
+// ── ACTIVATE ──────────────────────────────────────────────────────────────
+self.addEventListener('activate', event => {
+  console.log('[SW] Activating...');
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => {
+            console.log('[SW] Deleting old cache:', key);
+            return caches.delete(key);
+          })
+      )
+    )
+  );
+  self.clients.claim();
+});
+
+// ── FETCH ─────────────────────────────────────────────────────────────────
+self.addEventListener('fetch', event => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Skip non-GET and browser-extension requests
+  if (request.method !== 'GET') return;
+  if (!['http:', 'https:'].includes(url.protocol)) return;
+
+  // Camera/XR API calls — never cache
+  if (url.pathname.includes('/xr') || url.pathname.includes('/camera')) return;
+
+  event.respondWith(
+    caches.match(request).then(cached => {
+      if (cached) return cached;
+
+      // Network with fallback
+      return fetch(request)
+        .then(response => {
+          // Cache fresh copies of app assets
+          if (
+            response.ok &&
+            (url.origin === self.location.origin ||
+             url.hostname.includes('cdnjs.cloudflare.com') ||
+             url.hostname.includes('fonts.googleapis.com') ||
+             url.hostname.includes('fonts.gstatic.com'))
+          ) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => {
+          // Offline fallback for navigation
+          if (request.mode === 'navigate') {
+            return caches.match('./index.html');
+          }
+          return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+        });
+    })
+  );
+});
+
+// ── MESSAGE ───────────────────────────────────────────────────────────────
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    caches.delete(CACHE_NAME).then(() => {
+      event.ports[0].postMessage({ success: true });
+    });
+  }
+});
+`;
+  const blob = new Blob([swCode], {type: 'application/javascript'});
+  const swUrl = URL.createObjectURL(blob);
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(swUrl)
+      .then(() => console.log('[HoloPlace] SW registered'))
+      .catch(e => console.warn('[HoloPlace] SW failed:', e));
+  });
+}
+</script>
+</body>
+</html>
