@@ -16,432 +16,498 @@
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
 
     :root {
-      --holo-blue: #00d4ff;
-      --holo-blue-dim: #0088aa;
-      --holo-glow: rgba(0, 212, 255, 0.3);
-      --holo-bg: rgba(0, 10, 30, 0.85);
-      --holo-border: rgba(0, 212, 255, 0.4);
-      --warn: #ff6b35;
-      --success: #00ff88;
-      --grid: rgba(0, 212, 255, 0.15);
+      --holo-blue:    #00d4ff;
+      --holo-dim:     #0088aa;
+      --holo-glow:    rgba(0,212,255,0.3);
+      --holo-bg:      rgba(0,10,30,0.88);
+      --holo-border:  rgba(0,212,255,0.4);
+      --holo-green:   #00ff88;
+      --warn:         #ff6b35;
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
     html, body {
-      width: 100%; height: 100%;
-      overflow: hidden;
-      background: #000;
-      font-family: 'Share Tech Mono', monospace;
-      touch-action: none;
-      -webkit-tap-highlight-color: transparent;
+      width:100%; height:100%; overflow:hidden;
+      background:#000;
+      font-family:'Share Tech Mono',monospace;
+      touch-action:none;
+      -webkit-tap-highlight-color:transparent;
     }
 
-    #canvas-container {
-      position: fixed;
-      inset: 0;
-      z-index: 1;
-    }
+    #canvas-container { position:fixed; inset:0; z-index:1; }
+    canvas { display:block; width:100%!important; height:100%!important; }
 
-    canvas {
-      display: block;
-      width: 100% !important;
-      height: 100% !important;
-    }
-
-    /* ── SPLASH ── */
+    /* ── SPLASH ─────────────────────────────────────────────────── */
     #splash {
-      position: fixed; inset: 0; z-index: 100;
-      background: #000a1a;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 24px;
-      transition: opacity 0.6s ease;
+      position:fixed; inset:0; z-index:100;
+      background:#000a1a;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:24px;
+      transition:opacity .6s ease;
     }
-    #splash.hidden { opacity: 0; pointer-events: none; }
+    #splash.hidden { opacity:0; pointer-events:none; }
 
     .splash-logo {
-      font-family: 'Orbitron', sans-serif;
-      font-size: clamp(28px, 8vw, 48px);
-      font-weight: 900;
-      color: var(--holo-blue);
-      text-shadow: 0 0 20px var(--holo-blue), 0 0 40px rgba(0,212,255,0.5);
-      letter-spacing: 4px;
-      animation: pulse 2s ease-in-out infinite;
+      font-family:'Orbitron',sans-serif;
+      font-size:clamp(28px,8vw,48px); font-weight:900;
+      color:var(--holo-blue);
+      text-shadow:0 0 20px var(--holo-blue),0 0 40px rgba(0,212,255,.5);
+      letter-spacing:4px; animation:pulse 2s ease-in-out infinite;
     }
-    .splash-sub {
-      color: rgba(0,212,255,0.6);
-      font-size: 12px;
-      letter-spacing: 6px;
-      text-transform: uppercase;
-    }
+    .splash-sub { color:rgba(0,212,255,.6); font-size:12px; letter-spacing:6px; text-transform:uppercase; }
 
-    .splash-grid {
-      width: 200px; height: 200px;
-      position: relative;
-      margin: 10px 0;
-    }
-    .splash-grid svg { width: 100%; height: 100%; animation: spin 8s linear infinite; }
+    .splash-grid { width:200px; height:200px; position:relative; margin:10px 0; }
+    .splash-grid svg { width:100%; height:100%; animation:spin 8s linear infinite; }
 
     #start-btn {
-      background: transparent;
-      border: 1px solid var(--holo-blue);
-      color: var(--holo-blue);
-      font-family: 'Orbitron', sans-serif;
-      font-size: 14px;
-      letter-spacing: 4px;
-      padding: 14px 40px;
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
-      transition: all 0.3s;
+      background:transparent; border:1px solid var(--holo-blue);
+      color:var(--holo-blue); font-family:'Orbitron',sans-serif;
+      font-size:14px; letter-spacing:4px; padding:14px 40px;
+      cursor:pointer; position:relative; overflow:hidden; transition:all .3s;
     }
     #start-btn::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: var(--holo-blue);
-      transform: translateX(-100%);
-      transition: transform 0.3s;
-      z-index: -1;
+      content:''; position:absolute; inset:0;
+      background:var(--holo-blue); transform:translateX(-100%);
+      transition:transform .3s; z-index:-1;
     }
-    #start-btn:hover::before, #start-btn:active::before { transform: translateX(0); }
-    #start-btn:hover, #start-btn:active { color: #000; }
+    #start-btn:hover::before,#start-btn:active::before { transform:translateX(0); }
+    #start-btn:hover,#start-btn:active { color:#000; }
+    .splash-note { font-size:10px; color:rgba(0,212,255,.4); text-align:center; padding:0 30px; line-height:1.8; }
 
-    .splash-note {
-      font-size: 10px;
-      color: rgba(0,212,255,0.4);
-      text-align: center;
-      padding: 0 30px;
-      line-height: 1.8;
+    /* ── SCAN OVERLAY ───────────────────────────────────────────── */
+    /*  Shown during SCANNING and CONFIRMING phases                  */
+    #scan-overlay {
+      position:fixed; inset:0; z-index:20;
+      pointer-events:none;
+      display:none;
+      flex-direction:column;
+      align-items:center; justify-content:center;
+    }
+    #scan-overlay.active { display:flex; }
+
+    /* Animated radar sweep backdrop */
+    #scan-overlay::before {
+      content:'';
+      position:absolute; inset:0;
+      background:
+        radial-gradient(ellipse 60% 30% at 50% 60%,
+          rgba(0,212,255,0.04) 0%,
+          transparent 70%);
+      pointer-events:none;
     }
 
-    /* ── HUD OVERLAY ── */
-    #hud {
-      position: fixed; inset: 0; z-index: 10;
-      pointer-events: none;
-      display: none;
+    /* Sweeping radar line */
+    #radar-sweep {
+      position:absolute;
+      width:220px; height:220px;
+      top:50%; left:50%;
+      transform:translate(-50%,-60%);
+      border-radius:50%;
+      overflow:hidden;
     }
-    #hud.active { display: block; }
-
-    /* Corner decorations */
-    .corner {
-      position: absolute;
-      width: 40px; height: 40px;
-      border-color: var(--holo-blue);
-      border-style: solid;
-      opacity: 0.6;
+    #radar-sweep::after {
+      content:'';
+      position:absolute; inset:0;
+      background:conic-gradient(
+        transparent 0deg,
+        transparent 300deg,
+        rgba(0,212,255,0.35) 340deg,
+        rgba(0,212,255,0.0) 360deg
+      );
+      animation:radarSpin 2s linear infinite;
     }
-    .corner-tl { top: 16px; left: 16px; border-width: 2px 0 0 2px; }
-    .corner-tr { top: 16px; right: 16px; border-width: 2px 2px 0 0; }
-    .corner-bl { bottom: 100px; left: 16px; border-width: 0 0 2px 2px; }
-    .corner-br { bottom: 100px; right: 16px; border-width: 0 2px 2px 0; }
 
-    /* Crosshair */
-    #crosshair {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 40px; height: 40px;
+    /* Outer scan circle */
+    #scan-circle {
+      position:absolute;
+      width:220px; height:220px;
+      top:50%; left:50%;
+      transform:translate(-50%,-60%);
+      border-radius:50%;
+      border:1px solid rgba(0,212,255,0.4);
     }
-    #crosshair svg { width: 100%; height: 100%; }
+    #scan-circle::before {
+      content:'';
+      position:absolute; inset:20px;
+      border-radius:50%;
+      border:1px dashed rgba(0,212,255,0.2);
+      animation:spin 4s linear infinite reverse;
+    }
+    #scan-circle::after {
+      content:'';
+      position:absolute; inset:50px;
+      border-radius:50%;
+      border:1px solid rgba(0,212,255,0.15);
+      animation:spin 6s linear infinite;
+    }
 
-    /* Status bar */
+    /* Crosshair in scan circle centre */
+    #scan-crosshair {
+      position:absolute;
+      width:220px; height:220px;
+      top:50%; left:50%;
+      transform:translate(-50%,-60%);
+    }
+    #scan-crosshair::before,#scan-crosshair::after {
+      content:'';
+      position:absolute;
+      background:rgba(0,212,255,0.3);
+    }
+    #scan-crosshair::before { width:1px; height:100%; left:50%; }
+    #scan-crosshair::after  { width:100%; height:1px; top:50%; }
+
+    /* Phase label */
+    #scan-phase-label {
+      position:absolute;
+      top:calc(50% - 60px); /* just above centre */
+      left:50%; transform:translateX(-50%);
+      font-family:'Orbitron',sans-serif;
+      font-size:11px; letter-spacing:3px;
+      color:var(--holo-blue);
+      text-shadow:0 0 10px var(--holo-blue);
+      white-space:nowrap;
+      transition:color .4s, text-shadow .4s;
+    }
+    #scan-phase-label.confirmed {
+      color:var(--holo-green);
+      text-shadow:0 0 12px var(--holo-green);
+    }
+
+    /* Progress bar */
+    #scan-bar {
+      position:absolute;
+      bottom:calc(50% - 145px); /* below circle */
+      left:50%; transform:translateX(-50%);
+      width:220px;
+      display:none;
+      flex-direction:column;
+      gap:6px;
+    }
+    #scan-bar.visible { display:flex; }
+    #scan-bar-label {
+      font-size:9px; letter-spacing:3px;
+      color:rgba(0,212,255,.5); text-align:center;
+    }
+    #scan-bar-track {
+      width:100%; height:3px;
+      background:rgba(0,212,255,.15);
+      border-radius:2px; overflow:hidden;
+    }
+    #scan-bar-fill {
+      height:100%; width:0%;
+      background:var(--holo-blue);
+      box-shadow:0 0 8px var(--holo-blue);
+      border-radius:2px;
+      transition:width .12s linear, background .3s, box-shadow .3s;
+    }
+
+    /* Corner tick marks around scan circle */
+    .scan-tick {
+      position:absolute;
+      width:12px; height:12px;
+      border-color:rgba(0,212,255,0.6); border-style:solid;
+      top:50%; left:50%;
+    }
+    .scan-tick-tl { transform:translate(calc(-50% - 90px), calc(-50% - 90px)); border-width:2px 0 0 2px; }
+    .scan-tick-tr { transform:translate(calc(-50% + 78px), calc(-50% - 90px)); border-width:2px 2px 0 0; }
+    .scan-tick-bl { transform:translate(calc(-50% - 90px), calc(-50% + 78px)); border-width:0 0 2px 2px; }
+    .scan-tick-br { transform:translate(calc(-50% + 78px), calc(-50% + 78px)); border-width:0 2px 2px 0; }
+
+    /* ── CONFIRM PANEL ──────────────────────────────────────────── */
+    #confirm-panel {
+      position:fixed;
+      bottom:0; left:0; right:0; z-index:21;
+      display:none;
+      flex-direction:column;
+      align-items:center;
+      padding:20px 24px calc(20px + env(safe-area-inset-bottom,0px));
+      background:linear-gradient(to top, rgba(0,10,26,0.95) 0%, transparent 100%);
+      pointer-events:all;
+    }
+    #confirm-panel.visible { display:flex; }
+
+    .confirm-label {
+      font-size:10px; letter-spacing:4px;
+      color:rgba(0,212,255,.5); margin-bottom:16px; text-align:center;
+    }
+
+    .confirm-buttons {
+      display:flex; gap:12px; width:100%; max-width:360px;
+    }
+
+    #confirm-btn {
+      flex:2; padding:16px;
+      background:rgba(0,255,136,0.1);
+      border:1px solid var(--holo-green);
+      color:var(--holo-green);
+      font-family:'Orbitron',sans-serif; font-size:13px; letter-spacing:3px;
+      cursor:pointer; transition:all .2s;
+      position:relative; overflow:hidden;
+    }
+    #confirm-btn::before {
+      content:''; position:absolute; inset:0;
+      background:var(--holo-green); transform:scaleX(0);
+      transform-origin:left; transition:transform .25s; z-index:-1;
+    }
+    #confirm-btn:active::before { transform:scaleX(1); }
+    #confirm-btn:active { color:#001a0d; }
+
+    #rescan-btn {
+      flex:1; padding:16px;
+      background:transparent;
+      border:1px solid rgba(0,212,255,.35);
+      color:rgba(0,212,255,.6);
+      font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:2px;
+      cursor:pointer; transition:all .2s;
+    }
+    #rescan-btn:active { background:rgba(0,212,255,.1); color:var(--holo-blue); }
+
+    /* Detected surface badge */
+    #surface-badge {
+      display:flex; align-items:center; gap:10px;
+      background:rgba(0,255,136,0.08);
+      border:1px solid rgba(0,255,136,0.3);
+      padding:10px 18px; margin-bottom:16px;
+      font-size:10px; letter-spacing:2px;
+      color:var(--holo-green);
+    }
+    #surface-badge .dot {
+      width:8px; height:8px; border-radius:50%;
+      background:var(--holo-green);
+      box-shadow:0 0 8px var(--holo-green);
+      animation:pulse 1s ease-in-out infinite;
+    }
+
+    /* ── HUD ─────────────────────────────────────────────────────── */
+    #hud { position:fixed; inset:0; z-index:10; pointer-events:none; display:none; }
+    #hud.active { display:block; }
+
+    .corner { position:absolute; width:40px; height:40px; border-color:var(--holo-blue); border-style:solid; opacity:.6; }
+    .corner-tl { top:16px;  left:16px;  border-width:2px 0 0 2px; }
+    .corner-tr { top:16px;  right:16px; border-width:2px 2px 0 0; }
+    .corner-bl { bottom:100px; left:16px;  border-width:0 0 2px 2px; }
+    .corner-br { bottom:100px; right:16px; border-width:0 2px 2px 0; }
+
+    #crosshair { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:40px; height:40px; }
+    #crosshair svg { width:100%; height:100%; }
+
     #status-bar {
-      position: absolute;
-      top: 20px; left: 50%;
-      transform: translateX(-50%);
-      background: var(--holo-bg);
-      border: 1px solid var(--holo-border);
-      padding: 6px 16px;
-      font-size: 10px;
-      color: var(--holo-blue);
-      letter-spacing: 2px;
-      white-space: nowrap;
-      backdrop-filter: blur(8px);
-      pointer-events: none;
+      position:absolute; top:20px; left:50%; transform:translateX(-50%);
+      background:var(--holo-bg); border:1px solid var(--holo-border);
+      padding:6px 16px; font-size:10px; color:var(--holo-blue);
+      letter-spacing:2px; white-space:nowrap; backdrop-filter:blur(8px);
     }
 
-    /* Surface detection indicator */
     #surface-indicator {
-      position: absolute;
-      bottom: 160px; left: 50%;
-      transform: translateX(-50%);
-      font-size: 10px;
-      color: var(--holo-blue);
-      letter-spacing: 2px;
-      opacity: 0;
-      transition: opacity 0.4s;
-      text-align: center;
-      pointer-events: none;
+      position:absolute; bottom:160px; left:50%; transform:translateX(-50%);
+      font-size:10px; color:var(--holo-blue); letter-spacing:2px;
+      opacity:0; transition:opacity .4s; text-align:center;
     }
-    #surface-indicator.visible { opacity: 0.8; }
+    #surface-indicator.visible { opacity:.8; }
 
-    /* Dimension display */
     #dimensions {
-      position: absolute;
-      top: 60px; right: 16px;
-      background: var(--holo-bg);
-      border: 1px solid var(--holo-border);
-      padding: 10px 14px;
-      font-size: 10px;
-      color: var(--holo-blue);
-      line-height: 2;
-      letter-spacing: 1px;
-      backdrop-filter: blur(8px);
-      display: none;
-      pointer-events: none;
+      position:absolute; top:60px; right:16px;
+      background:var(--holo-bg); border:1px solid var(--holo-border);
+      padding:10px 14px; font-size:10px; color:var(--holo-blue);
+      line-height:2; letter-spacing:1px; backdrop-filter:blur(8px); display:none;
     }
-    #dimensions.visible { display: block; }
-    #dimensions .dim-label { color: rgba(0,212,255,0.5); font-size: 9px; }
-    #dimensions .dim-value { color: var(--holo-blue); }
+    #dimensions.visible { display:block; }
+    #dimensions .dim-label { color:rgba(0,212,255,.5); font-size:9px; }
+    #dimensions .dim-value { color:var(--holo-blue); }
 
-    /* Coordinates display */
     #coords {
-      position: absolute;
-      top: 60px; left: 16px;
-      background: var(--holo-bg);
-      border: 1px solid var(--holo-border);
-      padding: 10px 14px;
-      font-size: 10px;
-      color: var(--holo-blue);
-      line-height: 2;
-      letter-spacing: 1px;
-      backdrop-filter: blur(8px);
-      display: none;
-      pointer-events: none;
+      position:absolute; top:60px; left:16px;
+      background:var(--holo-bg); border:1px solid var(--holo-border);
+      padding:10px 14px; font-size:10px; color:var(--holo-blue);
+      line-height:2; letter-spacing:1px; backdrop-filter:blur(8px); display:none;
     }
-    #coords.visible { display: block; }
+    #coords.visible { display:block; }
 
-    /* ── TOOLBAR ── */
+    /* ── TOOLBAR ─────────────────────────────────────────────────── */
     #toolbar {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      z-index: 20;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
+      position:fixed; bottom:0; left:0; right:0; z-index:20;
+      display:none; flex-direction:column; align-items:center;
+      padding-bottom:env(safe-area-inset-bottom,0px);
     }
-    #toolbar.active { display: flex; }
+    #toolbar.active { display:flex; }
 
     #shape-selector {
-      display: flex;
-      gap: 0;
-      background: var(--holo-bg);
-      border: 1px solid var(--holo-border);
-      border-bottom: none;
-      backdrop-filter: blur(12px);
-      pointer-events: all;
+      display:flex; background:var(--holo-bg);
+      border:1px solid var(--holo-border); border-bottom:none;
+      backdrop-filter:blur(12px); pointer-events:all;
     }
-
     .shape-btn {
-      background: transparent;
-      border: none;
-      border-right: 1px solid var(--holo-border);
-      color: rgba(0,212,255,0.5);
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 9px;
-      letter-spacing: 2px;
-      padding: 10px 18px;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 5px;
-      transition: all 0.2s;
-      touch-action: manipulation;
-      min-width: 70px;
+      background:transparent; border:none;
+      border-right:1px solid var(--holo-border);
+      color:rgba(0,212,255,.5); font-family:'Share Tech Mono',monospace;
+      font-size:9px; letter-spacing:2px; padding:10px 18px; cursor:pointer;
+      display:flex; flex-direction:column; align-items:center; gap:5px;
+      transition:all .2s; touch-action:manipulation; min-width:70px;
     }
-    .shape-btn:last-child { border-right: none; }
-    .shape-btn svg { width: 24px; height: 24px; }
-    .shape-btn.active,
-    .shape-btn:active {
-      color: var(--holo-blue);
-      background: rgba(0,212,255,0.1);
-      text-shadow: 0 0 8px var(--holo-blue);
-    }
-    .shape-btn.active svg path,
-    .shape-btn.active svg circle,
-    .shape-btn.active svg ellipse,
-    .shape-btn.active svg rect {
-      stroke: var(--holo-blue);
-      filter: drop-shadow(0 0 3px var(--holo-blue));
+    .shape-btn:last-child { border-right:none; }
+    .shape-btn svg { width:24px; height:24px; }
+    .shape-btn.active,.shape-btn:active {
+      color:var(--holo-blue); background:rgba(0,212,255,.1);
+      text-shadow:0 0 8px var(--holo-blue);
     }
 
     #action-bar {
-      display: flex;
-      background: rgba(0,10,26,0.95);
-      border: 1px solid var(--holo-border);
-      border-bottom: none;
-      border-top: none;
-      width: 100%;
-      backdrop-filter: blur(12px);
-      pointer-events: all;
+      display:flex; background:rgba(0,10,26,.95);
+      border:1px solid var(--holo-border); border-bottom:none; border-top:none;
+      width:100%; backdrop-filter:blur(12px); pointer-events:all;
     }
-
     .action-btn {
-      flex: 1;
-      background: transparent;
-      border: none;
-      border-right: 1px solid rgba(0,212,255,0.15);
-      color: rgba(0,212,255,0.5);
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 8px;
-      letter-spacing: 1px;
-      padding: 8px 4px;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      transition: all 0.2s;
-      touch-action: manipulation;
+      flex:1; background:transparent; border:none;
+      border-right:1px solid rgba(0,212,255,.15);
+      color:rgba(0,212,255,.5); font-family:'Share Tech Mono',monospace;
+      font-size:8px; letter-spacing:1px; padding:8px 4px; cursor:pointer;
+      display:flex; flex-direction:column; align-items:center; gap:3px;
+      transition:all .2s; touch-action:manipulation;
     }
-    .action-btn:last-child { border-right: none; }
-    .action-btn svg { width: 18px; height: 18px; }
-    .action-btn.active,
-    .action-btn:active {
-      color: var(--holo-blue);
-      background: rgba(0,212,255,0.08);
-    }
-    .action-btn.danger { color: rgba(255,80,60,0.6); }
-    .action-btn.danger:active { color: #ff4040; background: rgba(255,64,64,0.1); }
+    .action-btn:last-child { border-right:none; }
+    .action-btn svg { width:18px; height:18px; }
+    .action-btn.active,.action-btn:active { color:var(--holo-blue); background:rgba(0,212,255,.08); }
+    .action-btn.danger { color:rgba(255,80,60,.6); }
+    .action-btn.danger:active { color:#ff4040; background:rgba(255,64,64,.1); }
 
-    /* Mode label */
+    /* Re-scan button in toolbar */
+    #btn-rescan-toolbar {
+      flex:1; background:transparent; border:none;
+      border-right:1px solid rgba(0,212,255,.15);
+      color:rgba(0,212,255,.4); font-family:'Share Tech Mono',monospace;
+      font-size:8px; letter-spacing:1px; padding:8px 4px; cursor:pointer;
+      display:flex; flex-direction:column; align-items:center; gap:3px;
+      transition:all .2s; touch-action:manipulation;
+    }
+    #btn-rescan-toolbar svg { width:18px; height:18px; }
+    #btn-rescan-toolbar:active { color:var(--holo-blue); background:rgba(0,212,255,.08); }
+
     #mode-label {
-      position: fixed;
-      bottom: 130px; left: 50%;
-      transform: translateX(-50%);
-      font-size: 9px;
-      letter-spacing: 4px;
-      color: var(--holo-blue);
-      opacity: 0.7;
-      pointer-events: none;
-      text-transform: uppercase;
-      display: none;
-      z-index: 15;
+      position:fixed; bottom:130px; left:50%; transform:translateX(-50%);
+      font-size:9px; letter-spacing:4px; color:var(--holo-blue);
+      opacity:.7; pointer-events:none; text-transform:uppercase;
+      display:none; z-index:15;
     }
-    #mode-label.visible { display: block; }
+    #mode-label.visible { display:block; }
 
-    /* Instruction toast */
     #toast {
-      position: fixed;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      background: var(--holo-bg);
-      border: 1px solid var(--holo-border);
-      color: var(--holo-blue);
-      font-size: 11px;
-      letter-spacing: 2px;
-      padding: 12px 24px;
-      text-align: center;
-      z-index: 30;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.3s;
-      backdrop-filter: blur(12px);
-      max-width: 80vw;
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:var(--holo-bg); border:1px solid var(--holo-border);
+      color:var(--holo-blue); font-size:11px; letter-spacing:2px;
+      padding:12px 24px; text-align:center; z-index:30;
+      pointer-events:none; opacity:0; transition:opacity .3s;
+      backdrop-filter:blur(12px); max-width:80vw;
     }
-    #toast.show { opacity: 1; }
+    #toast.show { opacity:1; }
 
-    /* Non-AR fallback camera */
     #video-bg {
-      position: fixed; inset: 0; z-index: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
-      display: none;
+      position:fixed; inset:0; z-index:0;
+      width:100%; height:100%; object-fit:cover; display:none;
     }
 
-    /* Scan lines effect */
     #scanlines {
-      position: fixed; inset: 0; z-index: 2;
-      pointer-events: none;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.03) 2px,
-        rgba(0,0,0,0.03) 4px
-      );
-      display: none;
+      position:fixed; inset:0; z-index:2; pointer-events:none;
+      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);
+      display:none;
     }
-    #scanlines.active { display: block; }
+    #scanlines.active { display:block; }
 
-    /* Vignette */
     #vignette {
-      position: fixed; inset: 0; z-index: 3;
-      pointer-events: none;
-      background: radial-gradient(ellipse at center,
-        transparent 60%,
-        rgba(0,5,15,0.5) 100%
-      );
-      display: none;
+      position:fixed; inset:0; z-index:3; pointer-events:none;
+      background:radial-gradient(ellipse at center,transparent 60%,rgba(0,5,15,.5) 100%);
+      display:none;
     }
-    #vignette.active { display: block; }
+    #vignette.active { display:block; }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
-    }
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
+    @keyframes pulse     { 0%,100%{opacity:1}  50%{opacity:.6} }
+    @keyframes spin      { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    @keyframes blink     { 0%,100%{opacity:1}  50%{opacity:0}  }
+    @keyframes radarSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    @keyframes ripple {
+      0%   { transform:scale(1);   opacity:.7; }
+      100% { transform:scale(2.5); opacity:0;  }
     }
 
-    .blink { animation: blink 1s step-end infinite; }
+    .blink { animation:blink 1s step-end infinite; }
   </style>
 </head>
 <body>
 
-<!-- Video background for non-WebXR fallback -->
 <video id="video-bg" autoplay playsinline muted></video>
 
-<!-- Main canvas -->
 <div id="canvas-container">
   <canvas id="ar-canvas"></canvas>
 </div>
 
-<!-- Scan lines & vignette -->
 <div id="scanlines"></div>
 <div id="vignette"></div>
 
-<!-- SPLASH SCREEN -->
+<!-- ══ SPLASH ══════════════════════════════════════════════════════ -->
 <div id="splash">
   <div class="splash-logo">HOLOPLACE</div>
-  <div class="splash-sub">AR · Prototype · v1.0</div>
-
+  <div class="splash-sub">AR · Prototype · v2.0</div>
   <div class="splash-grid">
     <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- Outer ring -->
-      <circle cx="100" cy="100" r="90" stroke="#00d4ff" stroke-width="0.5" stroke-dasharray="4 4" opacity="0.4"/>
-      <!-- Inner ring -->
-      <circle cx="100" cy="100" r="60" stroke="#00d4ff" stroke-width="0.5" opacity="0.5"/>
-      <!-- Cube wireframe -->
+      <circle cx="100" cy="100" r="90" stroke="#00d4ff" stroke-width=".5" stroke-dasharray="4 4" opacity=".4"/>
+      <circle cx="100" cy="100" r="60" stroke="#00d4ff" stroke-width=".5" opacity=".5"/>
       <rect x="70" y="70" width="60" height="60" stroke="#00d4ff" stroke-width="1.5" fill="none"/>
-      <rect x="80" y="60" width="60" height="60" stroke="#00d4ff" stroke-width="0.8" fill="none" opacity="0.6"/>
-      <line x1="70" y1="70" x2="80" y2="60" stroke="#00d4ff" stroke-width="0.8" opacity="0.6"/>
-      <line x1="130" y1="70" x2="140" y2="60" stroke="#00d4ff" stroke-width="0.8" opacity="0.6"/>
-      <line x1="130" y1="130" x2="140" y2="120" stroke="#00d4ff" stroke-width="0.8" opacity="0.6"/>
-      <line x1="70" y1="130" x2="80" y2="120" stroke="#00d4ff" stroke-width="0.8" opacity="0.6"/>
-      <!-- Cross lines -->
-      <line x1="10" y1="100" x2="190" y2="100" stroke="#00d4ff" stroke-width="0.3" opacity="0.2"/>
-      <line x1="100" y1="10" x2="100" y2="190" stroke="#00d4ff" stroke-width="0.3" opacity="0.2"/>
+      <rect x="80" y="60" width="60" height="60" stroke="#00d4ff" stroke-width=".8" fill="none" opacity=".6"/>
+      <line x1="70" y1="70" x2="80" y2="60" stroke="#00d4ff" stroke-width=".8" opacity=".6"/>
+      <line x1="130" y1="70" x2="140" y2="60" stroke="#00d4ff" stroke-width=".8" opacity=".6"/>
+      <line x1="130" y1="130" x2="140" y2="120" stroke="#00d4ff" stroke-width=".8" opacity=".6"/>
+      <line x1="70" y1="130" x2="80" y2="120" stroke="#00d4ff" stroke-width=".8" opacity=".6"/>
+      <line x1="10" y1="100" x2="190" y2="100" stroke="#00d4ff" stroke-width=".3" opacity=".2"/>
+      <line x1="100" y1="10" x2="100" y2="190" stroke="#00d4ff" stroke-width=".3" opacity=".2"/>
     </svg>
   </div>
-
   <button id="start-btn" onclick="startAR()">INITIALIZE AR</button>
   <div class="splash-note">
-    Point your camera at a flat surface.<br>
-    Tap to place holographic objects.<br>
+    Slowly move your phone across a flat surface.<br>
+    The app will scan and lock the surface before placement.<br>
     Requires camera permission.
   </div>
 </div>
 
-<!-- HUD -->
+<!-- ══ SCAN OVERLAY ════════════════════════════════════════════════ -->
+<div id="scan-overlay">
+  <!-- Animated radar -->
+  <div id="radar-sweep"></div>
+  <div id="scan-circle"></div>
+  <div id="scan-crosshair"></div>
+
+  <!-- Corner ticks -->
+  <div class="scan-tick scan-tick-tl"></div>
+  <div class="scan-tick scan-tick-tr"></div>
+  <div class="scan-tick scan-tick-bl"></div>
+  <div class="scan-tick scan-tick-br"></div>
+
+  <!-- Phase label -->
+  <div id="scan-phase-label">SCANNING SURFACE…</div>
+
+  <!-- Progress bar -->
+  <div id="scan-bar">
+    <div id="scan-bar-label">SURFACE ANALYSIS</div>
+    <div id="scan-bar-track">
+      <div id="scan-bar-fill"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONFIRM PANEL ═══════════════════════════════════════════════ -->
+<div id="confirm-panel">
+  <div id="surface-badge">
+    <div class="dot"></div>
+    FLAT SURFACE DETECTED
+  </div>
+  <div class="confirm-label">CONFIRM SURFACE TO BEGIN PLACEMENT</div>
+  <div class="confirm-buttons">
+    <button id="confirm-btn" onclick="confirmSurface()">✓ CONFIRM</button>
+    <button id="rescan-btn"  onclick="rescanSurface()">↺ RESCAN</button>
+  </div>
+</div>
+
+<!-- ══ HUD ═════════════════════════════════════════════════════════ -->
 <div id="hud">
   <div class="corner corner-tl"></div>
   <div class="corner corner-tr"></div>
@@ -449,20 +515,20 @@
   <div class="corner corner-br"></div>
 
   <div id="status-bar">
-    <span id="status-text">SCANNING SURFACE<span class="blink">_</span></span>
+    <span id="status-text">INITIALIZING<span class="blink">_</span></span>
   </div>
 
   <div id="crosshair">
     <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="20" r="8" stroke="#00d4ff" stroke-width="1" opacity="0.8"/>
-      <line x1="20" y1="2" x2="20" y2="12" stroke="#00d4ff" stroke-width="1" opacity="0.8"/>
-      <line x1="20" y1="28" x2="20" y2="38" stroke="#00d4ff" stroke-width="1" opacity="0.8"/>
-      <line x1="2" y1="20" x2="12" y2="20" stroke="#00d4ff" stroke-width="1" opacity="0.8"/>
-      <line x1="28" y1="20" x2="38" y2="20" stroke="#00d4ff" stroke-width="1" opacity="0.8"/>
+      <circle cx="20" cy="20" r="8" stroke="#00d4ff" stroke-width="1" opacity=".8"/>
+      <line x1="20" y1="2"  x2="20" y2="12" stroke="#00d4ff" stroke-width="1" opacity=".8"/>
+      <line x1="20" y1="28" x2="20" y2="38" stroke="#00d4ff" stroke-width="1" opacity=".8"/>
+      <line x1="2"  y1="20" x2="12" y2="20" stroke="#00d4ff" stroke-width="1" opacity=".8"/>
+      <line x1="28" y1="20" x2="38" y2="20" stroke="#00d4ff" stroke-width="1" opacity=".8"/>
     </svg>
   </div>
 
-  <div id="surface-indicator">▼ SURFACE DETECTED ▼</div>
+  <div id="surface-indicator">▼ SURFACE LOCKED ▼</div>
 
   <div id="dimensions">
     <div class="dim-label">DIMENSIONS</div>
@@ -481,88 +547,82 @@
   </div>
 </div>
 
-<!-- Mode label -->
+<!-- ══ MODE LABEL ══════════════════════════════════════════════════ -->
 <div id="mode-label">PLACE MODE</div>
 
-<!-- Toast notification -->
+<!-- ══ TOAST ═══════════════════════════════════════════════════════ -->
 <div id="toast"></div>
 
-<!-- Toolbar -->
+<!-- ══ TOOLBAR (hidden until surface confirmed) ════════════════════ -->
 <div id="toolbar">
   <div id="action-bar">
-    <button class="action-btn active" id="btn-place" onclick="setMode('place')">
+    <button class="action-btn active" id="btn-place"  onclick="setMode('place')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <circle cx="12" cy="12" r="3"/>
         <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
-      </svg>
-      PLACE
+      </svg>PLACE
     </button>
     <button class="action-btn" id="btn-move" onclick="setMode('move')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M12 12v0"/>
-        <line x1="2" y1="12" x2="22" y2="12"/>
-        <line x1="12" y1="2" x2="12" y2="22"/>
-      </svg>
-      MOVE
+        <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3"/>
+        <line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/>
+      </svg>MOVE
     </button>
     <button class="action-btn" id="btn-rotate" onclick="setMode('rotate')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
-      </svg>
-      ROTATE
+      </svg>ROTATE
     </button>
     <button class="action-btn" id="btn-scale" onclick="setMode('scale')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
-      </svg>
-      SCALE
+      </svg>SCALE
+    </button>
+    <button id="btn-rescan-toolbar" onclick="rescanSurface()" title="Re-scan surface">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+        <path d="M3 3v5h5"/>
+      </svg>RESCAN
     </button>
     <button class="action-btn danger" id="btn-delete" onclick="deleteObject()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <polyline points="3 6 5 6 21 6"/>
-        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-        <path d="M10 11v6M14 11v6"/>
-        <path d="M9 6V4h6v2"/>
-      </svg>
-      DELETE
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6M9 6V4h6v2"/>
+      </svg>DELETE
     </button>
   </div>
 
   <div id="shape-selector">
     <button class="shape-btn active" id="shape-cube" onclick="selectShape('cube')">
-      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 32 32" fill="none">
         <rect x="8" y="14" width="16" height="16" stroke="#00d4ff" stroke-width="1.5"/>
-        <rect x="14" y="6" width="16" height="16" stroke="#00d4ff" stroke-width="1" opacity="0.6"/>
-        <line x1="8" y1="14" x2="14" y2="6" stroke="#00d4ff" stroke-width="1" opacity="0.6"/>
-        <line x1="24" y1="14" x2="30" y2="6" stroke="#00d4ff" stroke-width="1" opacity="0.6"/>
-        <line x1="24" y1="30" x2="30" y2="22" stroke="#00d4ff" stroke-width="1" opacity="0.6"/>
-        <line x1="8" y1="30" x2="14" y2="22" stroke="#00d4ff" stroke-width="1" opacity="0.6"/>
-      </svg>
-      CUBE
+        <rect x="14" y="6" width="16" height="16" stroke="#00d4ff" stroke-width="1" opacity=".6"/>
+        <line x1="8"  y1="14" x2="14" y2="6"  stroke="#00d4ff" stroke-width="1" opacity=".6"/>
+        <line x1="24" y1="14" x2="30" y2="6"  stroke="#00d4ff" stroke-width="1" opacity=".6"/>
+        <line x1="24" y1="30" x2="30" y2="22" stroke="#00d4ff" stroke-width="1" opacity=".6"/>
+        <line x1="8"  y1="30" x2="14" y2="22" stroke="#00d4ff" stroke-width="1" opacity=".6"/>
+      </svg>CUBE
     </button>
     <button class="shape-btn" id="shape-sphere" onclick="selectShape('sphere')">
-      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 32 32" fill="none">
         <circle cx="16" cy="16" r="12" stroke="#00d4ff" stroke-width="1.5"/>
-        <ellipse cx="16" cy="16" rx="12" ry="5" stroke="#00d4ff" stroke-width="0.8" opacity="0.6"/>
-        <line x1="16" y1="4" x2="16" y2="28" stroke="#00d4ff" stroke-width="0.8" opacity="0.6"/>
-        <ellipse cx="16" cy="16" rx="5" ry="12" stroke="#00d4ff" stroke-width="0.8" opacity="0.4"/>
-      </svg>
-      SPHERE
+        <ellipse cx="16" cy="16" rx="12" ry="5" stroke="#00d4ff" stroke-width=".8" opacity=".6"/>
+        <line x1="16" y1="4" x2="16" y2="28" stroke="#00d4ff" stroke-width=".8" opacity=".6"/>
+        <ellipse cx="16" cy="16" rx="5" ry="12" stroke="#00d4ff" stroke-width=".8" opacity=".4"/>
+      </svg>SPHERE
     </button>
     <button class="shape-btn" id="shape-cylinder" onclick="selectShape('cylinder')">
-      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="16" cy="9" rx="10" ry="4" stroke="#00d4ff" stroke-width="1.5"/>
+      <svg viewBox="0 0 32 32" fill="none">
+        <ellipse cx="16" cy="9"  rx="10" ry="4" stroke="#00d4ff" stroke-width="1.5"/>
         <ellipse cx="16" cy="23" rx="10" ry="4" stroke="#00d4ff" stroke-width="1.5"/>
-        <line x1="6" y1="9" x2="6" y2="23" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="6"  y1="9" x2="6"  y2="23" stroke="#00d4ff" stroke-width="1.5"/>
         <line x1="26" y1="9" x2="26" y2="23" stroke="#00d4ff" stroke-width="1.5"/>
-        <line x1="16" y1="5" x2="16" y2="19" stroke="#00d4ff" stroke-width="0.6" opacity="0.4"/>
-      </svg>
-      CYLINDER
+        <line x1="16" y1="5" x2="16" y2="19" stroke="#00d4ff" stroke-width=".6" opacity=".4"/>
+      </svg>CYLINDER
     </button>
   </div>
 </div>
 
-<!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="app.js"></script>
 </body>
